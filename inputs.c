@@ -9,7 +9,11 @@ int main() {
     int  age[MAX];
     char name[MAX][30];
     char contact[MAX][15];
-    int  count, i;
+    int  count;
+    int  i;
+    int  found;
+    int  searchID;
+    int  x;
 
     printf("Enter the number of passengers: ");
     scanf("%d", &count);
@@ -45,6 +49,31 @@ int main() {
         printf("Name:    %s\n", name[i]);
         printf("Age:     %d\n", age[i]);
         printf("Contact: %s\n", contact[i]);
+    }
+
+    // Search by ID
+    printf("\nEnter the Passenger ID that you want to search: ");
+    scanf("%d", &searchID);
+
+    found = 0;
+    x = 0;
+
+    while (found == 0 && x < count) {
+        if (searchID == id[x]) {
+            found = 1;
+        } else {
+            x = x + 1;
+        }
+    }
+
+    if (found == 1) {
+        printf("\n--- Passenger Found ---\n");
+        printf("ID:      %d\n", id[x]);
+        printf("Name:    %s\n", name[x]);
+        printf("Age:     %d\n", age[x]);
+        printf("Contact: %s\n", contact[x]);
+    } else {
+        printf("Passenger not found.\n");
     }
 
     return 0;
