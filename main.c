@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define max 100
+#define MAX_BAGGAGE 100
+#define MAX_FLIGHTS 100
 #define Null 0
 // baggage structure
 struct Baggage
@@ -11,7 +12,7 @@ struct Baggage
     char passengername[100];
     int bags;
     float weight;
-    float fee;
+    float charges;
 };
 // records
 struct FlightAvailaibulity
@@ -30,12 +31,33 @@ struct Flight
     float ticketprice;
 
 };
-struct Baggage * baggage = Null;
-struct Flight flights[max];
+struct Baggage baggage[MAX_BAGGAGE];
+struct Flight flights[MAX_FLIGHTS];
 int baggagecount = 0;
 int flightcount = 0;
 float calculatebaggagecharge(float weight){
     if (weight <= 20)
         return 0;
     return (weight -20)*10;
+}
+void addBaggage() {
+    if (baggagecount >= MAX_BAGGAGE )
+    {
+        printf("\n Baggge is full!\n");
+        return;
+    }
+    printf("\n =============ADD BAGAGE ==========\n");
+    printf("enter pnr:");
+    scanf("%19s",baggage[baggagecount].pnr);
+    printf("enter name of passenger:");
+    scanf("%[^\n]",baggage[baggagecount].passengername);
+    printf("enter baggae weight(kg):");
+    scanf("%f", &baggage[baggagecount].weight);
+    printf("enter the no. of pieces of bag:");
+    scanf("%d", &baggage[baggagecount].bags);
+    baggage[baggagecount].charges = calculatebaggagecharge(baggage[baggagecount].weight);
+    printf("\n baggage added succesfully!");
+    printf("\n baggage charges: RS. %.2f\n",baggage[baggagecount].charges);
+    baggagecount++;
+
 }
