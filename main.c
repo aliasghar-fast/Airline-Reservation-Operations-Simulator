@@ -60,4 +60,7 @@ void addBaggage() {
     printf("\n baggage charges: RS. %.2f\n",baggage[baggagecount].charges);
     baggagecount++;
 
+
+    printf("PNR Number is: %d", &baggage[baggagecount].pnr);
+    
 }
