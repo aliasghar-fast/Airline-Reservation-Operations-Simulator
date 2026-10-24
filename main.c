@@ -36,8 +36,9 @@ struct Flight flights[MAX_FLIGHTS];
 int baggagecount = 0;
 int flightcount = 0;
 float calculatebaggagecharge(float weight){
-    if (weight <= 20)
+    if (weight <= 20){
         return 0;
+    }
     return (weight -20)*10;
 }
 void addBaggage() {
@@ -58,9 +59,30 @@ void addBaggage() {
     baggage[baggagecount].charges = calculatebaggagecharge(baggage[baggagecount].weight);
     printf("\n baggage added succesfully!");
     printf("\n baggage charges: RS. %.2f\n",baggage[baggagecount].charges);
-    baggagecount++;
-
-
-    printf("PNR Number is: %d", &baggage[baggagecount].pnr);
+    baggagecount++;   
     
+}
+// searching for the baggage fount == 0 or found ==1
+void searchBaggage()
+{
+    char searchPNR[20];
+    int found = 0;
+    printf("\nEnter PNR to search: ");
+    scanf("%19s", searchPNR);
+    for (int i = 0; i < baggagecount; i++) {
+        if (strcmp(baggage[i].pnr, searchPNR) == 0) {
+            printf("\n--- BAGGAGE DETAILS ---\n");
+            printf("PNR : %s\n", baggage[i].pnr);
+            printf("Passenger : %s\n", baggage[i].passengername);
+            printf("Weight : %.2f KG\n", baggage[i].weight);
+            printf("Pieces : %d\n", baggage[i].bags);
+            printf("Charges : Rs. %.2f\n", baggage[i].charges);
+            found = 1;
+            break;
+        }
+    }
+    
+    if (found == 0) {
+        printf("\nBaggage record not found.\n");
+    }
 }
