@@ -86,3 +86,40 @@ void searchBaggage()
         printf("\nBaggage record not found.\n");
     }
 }
+void displayBaggage() {
+    if (baggagecount == 0) {
+        printf("\nNo baggage records available.\n");
+        return;
+    }
+    printf("\n--- BAGGAGE REPORT ---\n");
+    for (int i = 0; i < baggagecount; i++) {
+        printf("\nRecord %d\n", i + 1);
+        printf("PNR : %s\n", baggage[i].pnr);
+        printf("Passenger : %s\n", baggage[i].passengername);
+        printf("Weight : %.2f KG\n", baggage[i].weight);
+        printf("Pieces : %d\n", baggage[i].bags);
+        printf("Charges : Rs. %.2f\n", baggage[i].charges);
+    }
+}
+float calculate_Occupancy(int totalSeats, int occupiedSeats) {
+    return ((float)occupiedSeats / totalSeats) * 100;
+}
+
+void addFlight() {
+    if (flightcount >= MAX_FLIGHTS) {
+        printf("\nFlight storage is full!\n");
+        return;
+    }
+    printf("\n--- ADD FLIGHT ---\n");
+    printf("Enter Flight Number: ");
+    scanf("%s", flights[flightcount].flightno);
+    printf("Enter Total Seats: ");
+    scanf("%d", &flights[flightcount].totalseats);
+    printf("Enter Occupied Seats: ");
+    scanf("%d", &flights[flightcount].occupied_seats);
+    printf("Enter Ticket Fare: ");
+    scanf("%f", &flights[flightcount].ticketprice);
+    
+    flightcount++;
+    printf("\nFlight added successfully!\n");
+}
