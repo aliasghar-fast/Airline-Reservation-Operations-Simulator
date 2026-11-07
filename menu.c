@@ -10,30 +10,30 @@ void main(){
     printf("4. Cancel Booking\n");
     printf("5. Check-In\n");
     printf("6. Exit\n");
+    while (choice != 6){
+        scanf("%d", &choice);
+        switch (choice){
+            case 1:
 
-    scanf("%d", &choice);
-    switch (choice){
-        case 1:
+                break;
+            case 2:
 
-            break;
-        case 2:
+                break;
+            case 3:
 
-            break;
-        case 3:
+                break;
+            case 4:
 
-            break;
-        case 4:
+                break;
+            case 5:
 
-            break;
-        case 5:
+                break;
+            case 6:
+                break;
+            default:
+                printf("invalid choice\n");
+                break;
 
-            break;
-        case 6:
-            break;
-        default:
-            printf("invalid choice");
-            return;
-            break;
-
+        }
     }
 }
