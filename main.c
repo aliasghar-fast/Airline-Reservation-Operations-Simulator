@@ -123,3 +123,37 @@ void addFlight() {
     flightcount++;
     printf("\nFlight added successfully!\n");
 }
+void occupancyReport() {
+    if (flightcount == 0) {
+        printf("\nNo flight records available.\n");
+        return;
+    }
+    
+    printf("\n--- OCCUPANCY REPORT ---\n");
+    for (int i = 0; i < flightcount; i++) {
+        int availableSeats = flights[i].totalseats - flights[i].occupied_seats;
+        printf("\nFlight : %s", flights[i].flightno);
+        printf("\nTotal Seats : %d", flights[i].totalseats);
+        printf("\nOccupied : %d", flights[i].occupied_seats);
+        printf("\nAvailable : %d", availableSeats);
+        printf("\nOccupancy : %.2f%%\n", calculateOccupancy(flights[i].totalseats, flights[i].occupied_seats));
+    }
+}
+void revenueReport() {
+    float totalRevenue = 0;
+    if (flightcount == 0) {
+        printf("\nNo flight records available.\n");
+        return;
+    }
+    
+    printf("\n--- REVENUE REPORT ---\n");
+    for (int i = 0; i < flightcount; i++) {
+        float revenue = flights[i].occupied_seats * flights[i].ticketprice;
+        printf("\nFlight : %s", flights[i].flightno);
+        printf("\nTickets Sold : %d", flights[i].occupied_seats);
+        printf("\nTicket Fare : Rs. %.2f", flights[i].ticketprice);
+        printf("\nRevenue : Rs. %.2f\n", revenue);
+        totalRevenue += revenue;
+    }
+    printf("\nTOTAL REVENUE: Rs. %.2f\n", totalRevenue);
+}
