@@ -157,3 +157,18 @@ void revenueReport() {
     }
     printf("\nTOTAL REVENUE: Rs. %.2f\n", totalRevenue);
 }
+void sortFlightsByRevenue() {
+    struct Flight temp;
+    for (int i = 0; i < flightcount - 1; i++) {
+        for (int j = 0; j < flightcount - i - 1; j++) {
+            float rev_1 = flights[j].occupied_seats * flights[j].ticketprice;
+            float rev_2 = flights[j + 1].occupied_seats * flights[j + 1].ticketprice;
+            if (rev_1 < rev_2) {
+                temp = flights[j];
+                flights[j] = flights[j + 1];
+                flights[j + 1] = temp;
+            }
+        }
+    }
+    printf("\nFlights sorted by revenue successfully.\n");
+}
