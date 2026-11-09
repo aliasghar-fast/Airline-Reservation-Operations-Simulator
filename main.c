@@ -172,3 +172,36 @@ void sortFlightsByRevenue() {
     }
     printf("\nFlights sorted by revenue successfully.\n");
 }
+void saveData() {
+    FILE *fp = fopen("airline_data.dat", "wb");
+    if (fp == NULL) {
+        printf("\nError opening file!\n");
+        return;
+    }
+    
+    fwrite(&baggagecount, sizeof(int), 1, fp);
+    fwrite(baggage, sizeof(struct Baggage), baggagecount, fp);
+    
+    fwrite(&flightcount, sizeof(int), 1, fp);
+    fwrite(flights, sizeof(struct Flight), flightcount, fp);
+    
+    fclose(fp);
+    printf("\nData saved successfully!\n");
+}
+
+void loadData() {
+    FILE *fp = fopen("airline_data.dat", "rb");
+    if (fp == NULL) {
+        printf("\nNo previous data found.\n");
+        return;
+    }
+    
+    fread(&baggagecount, sizeof(int), 1, fp);
+    fread(baggage, sizeof(struct Baggage), baggagecount, fp);
+    
+    fread(&flightcount, sizeof(int), 1, fp);
+    fread(flights, sizeof(struct Flight), flightcount, fp);
+    
+    fclose(fp);
+    printf("\nData loaded successfully!\n");
+}
