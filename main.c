@@ -205,3 +205,45 @@ void loadData() {
     fclose(fp);
     printf("\nData loaded successfully!\n");
 }
+void baggageMenu() {
+    int choice;
+    do {
+        printf("\n*** BAGGAGE MANAGEMENT ***\n");
+        printf("1. Add Baggage\n");
+        printf("2. Search Baggage\n");
+        printf("3. Display Baggage\n");
+        printf("4. Return to Main Menu\n");
+        printf("Enter choice: ");
+        scanf("%d", &choice);
+        
+        switch (choice) {
+            case 1: addBaggage(); break;
+            case 2: searchBaggage(); break;
+            case 3: displayBaggage(); break;
+            case 4: break;
+            default: printf("\nInvalid choice!\n");
+        }
+    } while (choice != 4);
+}
+void reportMenu() {
+    int choice;
+    do {
+        printf("\n*** REPORTS ***\n");
+        printf("1. Baggage Report\n");
+        printf("2. Occupancy Report\n");
+        printf("3. Revenue Report\n");
+        printf("4. Sort Flights by Revenue\n");
+        printf("5. Return to Main Menu\n");
+        printf("Enter choice: ");
+        scanf("%d", &choice);
+        
+        switch (choice) {
+            case 1: displayBaggage(); break;
+            case 2: occupancyReport(); break;
+            case 3: revenueReport(); break;
+            case 4: sortFlightsByRevenue(); break;
+            case 5: break;
+            default: printf("\nInvalid choice!\n");
+        }
+    } while (choice != 5);
+}
