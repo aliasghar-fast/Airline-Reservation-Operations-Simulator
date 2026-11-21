@@ -1,62 +1,96 @@
+/* inputs.c - Passenger and booking records */
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
-#define MAX 100
-#define NAME_LEN 30
+#define NAME_LEN 50
 #define CONTACT_LEN 15
 #define FLIGHT_LEN 10
-#define MAX_BOOKINGS 200
+#define INITIAL_CAPACITY 4
 #define FIRST_PNR 1001
 
-/* TEMPORARY PLACE: struct to be moved into shared.h once Ali creates it */
+// [SHARED] move to shared.h
+struct Passenger {
+    int  id;
+    char name[NAME_LEN];
+    int  age;
+    char contact[CONTACT_LEN];
+};
+
+// [SHARED] move to shared.h
 struct Booking {
     int   pnr;
     int   passengerID;
     char  flightno[FLIGHT_LEN];
-    int   row;            // 0-based: row 0 is shown as 1
-    int   column;         // 0-based: column 0 is shown as A
+    int   row;            // 0-based
+    int   column;         // 0-based
     int   travelClass;    // 1 = Economy, 2 = Business
     float fare;
-    int   active;         // 1 = current booking, 0 = cancelled
-    int   checkedIn;      // 0 = not checked in yet
+    int   active;         // 1 = active, 0 = cancelled
+    int   checkedIn;      // 1 = checked in, 0 = not
 };
 
+// Record storage
+static struct Passenger *passengers = NULL;
+static int passengerCount = 0;
+static int passengerCapacity = 0;
+
+static struct Booking *bookings = NULL;
+static int bookingCount = 0;
+static int bookingCapacity = 0;
+static int nextPNR = FIRST_PNR;
+
+// Input helpers
+static int   readLine(char buffer[], int size);
+static int   isOnlySpaces(char text[]);
+static int   readInt(char prompt[], int min, int max);
+static float readFloat(char prompt[], float min, float max);
+static void  readName(char prompt[], char name[]);
+static void  readContact(char prompt[], char contact[]);
+static void  readFlightNo(char prompt[], char flightno[]);
+static void  readSeat(char prompt[], int *row, int *column);
+
+// Memory and record helpers
+static int growPassengers(void);
+static int growBookings(void);
+static int seatIsBooked(char flightno[], int row, int column);
+
 // Passenger functions
-void registerPassenger(int id[], char name[][NAME_LEN], int age[], char contact[][CONTACT_LEN], int index);
-void displayPassenger(int id[], char name[][NAME_LEN], int age[], char contact[][CONTACT_LEN], int index);
-void displayAllPassengers(int id[], char name[][NAME_LEN], int age[], char contact[][CONTACT_LEN], int count);
-int searchPassenger(int id[], int count, int searchID);
+void registerPassenger(void);
+void displayPassenger(int index);
+void displayAllPassengers(void);
+int  searchPassenger(int searchID);
+void searchPassengerMenu(void);
 
 // Booking functions
-int createBooking(struct Booking bookings[], int *bookingCount, int *nextPNR, int id[], int passengerCount);
-int findBookingByPNR(struct Booking bookings[], int bookingCount, int pnr);
-void displayBooking(struct Booking bookings[], int index);
-int cancelBooking(struct Booking bookings[], int bookingCount);
+int  createBooking(void);
+int  findBookingByPNR(int pnr);
+void displayBooking(int index);
+void searchBookingMenu(void);
+int  cancelBooking(void);
 
-// TEMPORARY stand-ins for Ali's flight/seat functions
-int flightExists(char flightno[]);
-int isSeatAvailable(char flightno[], int row, int column);
-int reserveSeat(char flightno[], int row, int column);
+// Accessors
+struct Booking   *getBooking(int pnr);
+struct Passenger *getPassenger(int id);
+int               getBookingCount(void);
+struct Booking   *getBookingAt(int index);
+
+// Cleanup
+void freeRecords(void);
+
+// [ALI] flight and seat functions
+int  flightExists(char flightno[]);
+int  isSeatAvailable(char flightno[], int row, int column);
+int  seatMatchesClass(char flightno[], int row, int column, int travelClass);
+int  reserveSeat(char flightno[], int row, int column);
 void releaseSeat(char flightno[], int row, int column);
 
+// [MENU] test driver; replaced by menu.c
 int main() {
 
-    int  id[MAX];
-    int  age[MAX];
-    char name[MAX][NAME_LEN];
-    char contact[MAX][CONTACT_LEN];
-    int  passengerCount = 0;
-
-    struct Booking bookings[MAX_BOOKINGS];
-    int  bookingCount = 0;
-    int  nextPNR = FIRST_PNR;
-
-    int  choice;
-    int  searchID;
-    int  searchPNR;
-    int  position;
-    int  pnr;
+    int choice;
 
     do {
         printf("\n===== TEST MENU =====\n");
@@ -67,120 +101,357 @@ int main() {
         printf("5. Find booking by PNR\n");
         printf("6. Cancel booking\n");
         printf("0. Exit\n");
-        printf("Enter choice: ");
-        scanf("%d", &choice);
+        choice = readInt("Enter choice: ", 0, 6);
 
         switch (choice) {
             case 1:
-                if (passengerCount >= MAX) {
-                    printf("Passenger limit reached.\n");
-                } else {
-                    registerPassenger(id, name, age, contact, passengerCount);
-                    passengerCount = passengerCount + 1;
-                }
+                registerPassenger();
                 break;
 
             case 2:
-                displayAllPassengers(id, name, age, contact, passengerCount);
+                displayAllPassengers();
                 break;
 
             case 3:
-                printf("Enter the Passenger ID to search: ");
-                scanf("%d", &searchID);
-                position = searchPassenger(id, passengerCount, searchID);
-                if (position != -1) {
-                    printf("\n--- Passenger Found ---\n");
-                    displayPassenger(id, name, age, contact, position);
-                } else {
-                    printf("Passenger not found.\n");
-                }
+                searchPassengerMenu();
                 break;
 
             case 4:
-                pnr = createBooking(bookings, &bookingCount, &nextPNR, id, passengerCount);
-                if (pnr != 0) {
-                    printf("\nBooking successful! Your PNR is %d\n", pnr);
-                }
+                createBooking();
                 break;
 
             case 5:
-                printf("Enter PNR: ");
-                scanf("%d", &searchPNR);
-                position = findBookingByPNR(bookings, bookingCount, searchPNR);
-                if (position != -1) {
-                    printf("\n--- Booking Found ---\n");
-                    displayBooking(bookings, position);
-                } else {
-                    printf("Booking not found.\n");
-                }
+                searchBookingMenu();
                 break;
 
             case 6:
-                if (cancelBooking(bookings, bookingCount) == 1) {
-                    printf("\nBooking cancelled. The seat is free again.\n");
-                }
+                cancelBooking();
                 break;
 
             case 0:
                 printf("Exiting.\n");
                 break;
-
-            default:
-                printf("Invalid choice.\n");
         }
     } while (choice != 0);
+
+    freeRecords();
 
     return 0;
 }
 
-/* ---------- PASSENGER FUNCTIONS ---------- */
+/* Input helpers */
 
-void registerPassenger(int id[], char name[][NAME_LEN], int age[], char contact[][CONTACT_LEN], int index) {
-    int newID;
+static int readLine(char buffer[], int size) {
+    int ch;
 
-    printf("Enter Passenger ID: ");
-    scanf("%d", &newID);
-
-    while (searchPassenger(id, index, newID) != -1) {
-        printf("That ID is already registered. Enter a different ID: ");
-        scanf("%d", &newID);
+    if (fgets(buffer, size, stdin) == NULL) {
+        printf("\nInput ended. Exiting.\n");
+        freeRecords();
+        exit(0);
     }
 
-    id[index] = newID;
-    getchar();
+    if (strchr(buffer, '\n') == NULL) {
+        ch = getchar();
+        if (ch == '\n' || ch == EOF) {
+            return 1;
+        }
+        while (ch != '\n' && ch != EOF) {
+            ch = getchar();
+        }
+        return 0;
+    }
 
-    printf("Enter Passenger Name: ");
-    fgets(name[index], NAME_LEN, stdin);
-    name[index][strcspn(name[index], "\n")] = '\0';
-
-    printf("Enter Passenger Age: ");
-    scanf("%d", &age[index]);
-
-    printf("Enter Passenger Contact: ");
-    scanf("%14s", contact[index]);   // 14 = CONTACT_LEN - 1
+    buffer[strcspn(buffer, "\n")] = '\0';
+    return 1;
 }
 
-void displayPassenger(int id[], char name[][NAME_LEN], int age[], char contact[][CONTACT_LEN], int index) {
-    printf("ID:      %d\n", id[index]);
-    printf("Name:    %s\n", name[index]);
-    printf("Age:     %d\n", age[index]);
-    printf("Contact: %s\n", contact[index]);
+static int isOnlySpaces(char text[]) {
+    int i = 0;
+
+    while (text[i] != '\0') {
+        if (!isspace((unsigned char)text[i])) {
+            return 0;
+        }
+        i = i + 1;
+    }
+
+    return 1;
 }
 
-void displayAllPassengers(int id[], char name[][NAME_LEN], int age[], char contact[][CONTACT_LEN], int count) {
-    int i;
+static int readInt(char prompt[], int min, int max) {
+    char line[50];
+    char *end;
+    long value;
 
-    for (i = 0; i < count; i++) {
-        printf("\n--- Passenger %d ---\n", i + 1);
-        displayPassenger(id, name, age, contact, i);
+    while (1) {
+        printf("%s", prompt);
+
+        if (readLine(line, sizeof(line)) == 1) {
+            value = strtol(line, &end, 10);
+
+            if (end != line && isOnlySpaces(end) == 1 && value >= min && value <= max) {
+                return (int)value;
+            }
+        }
+        printf("Invalid input. Enter a whole number from %d to %d.\n", min, max);
     }
 }
 
-int searchPassenger(int id[], int count, int searchID) {
+static float readFloat(char prompt[], float min, float max) {
+    char line[50];
+    char *end;
+    double value;
+
+    while (1) {
+        printf("%s", prompt);
+
+        if (readLine(line, sizeof(line)) == 1) {
+            value = strtod(line, &end);
+
+            if (end != line && isOnlySpaces(end) == 1 && value >= min && value <= max) {
+                return (float)value;
+            }
+        }
+        printf("Invalid input. Enter a number from %.0f to %.0f.\n", min, max);
+    }
+}
+
+static void readName(char prompt[], char name[]) {
+    char line[100];
+    int  i;
+    int  fitted;
+
+    while (1) {
+        printf("%s", prompt);
+        fitted = readLine(line, sizeof(line));
+
+        i = (int)strlen(line);
+        while (i > 0 && line[i - 1] == ' ') {
+            line[i - 1] = '\0';
+            i = i - 1;
+        }
+
+        if (fitted == 1 && isalpha((unsigned char)line[0]) && strlen(line) < NAME_LEN) {
+            i = 0;
+            while (line[i] != '\0' && (isalpha((unsigned char)line[i]) || line[i] == ' '
+                    || line[i] == '.' || line[i] == '-' || line[i] == '\'')) {
+                i = i + 1;
+            }
+
+            if (line[i] == '\0') {
+                strcpy(name, line);
+                return;
+            }
+        }
+        printf("Invalid name. Start with a letter; letters, spaces, . - ' only; up to %d characters.\n", NAME_LEN - 1);
+    }
+}
+
+static void readContact(char prompt[], char contact[]) {
+    char line[100];
+    int  i;
+    int  fitted;
+
+    while (1) {
+        printf("%s", prompt);
+        fitted = readLine(line, sizeof(line));
+
+        i = 0;
+        while (isdigit((unsigned char)line[i])) {
+            i = i + 1;
+        }
+
+        if (fitted == 1 && line[i] == '\0' && i >= 10 && i < CONTACT_LEN) {
+            strcpy(contact, line);
+            return;
+        }
+        printf("Invalid contact. Digits only, 10 to %d digits, no spaces or dashes.\n", CONTACT_LEN - 1);
+    }
+}
+
+static void readFlightNo(char prompt[], char flightno[]) {
+    char line[100];
+    int  i;
+    int  fitted;
+
+    while (1) {
+        printf("%s", prompt);
+        fitted = readLine(line, sizeof(line));
+
+        i = 0;
+        while (isalnum((unsigned char)line[i])) {
+            i = i + 1;
+        }
+
+        if (fitted == 1 && line[i] == '\0' && i >= 2 && i < FLIGHT_LEN) {
+            i = 0;
+            while (line[i] != '\0') {
+                flightno[i] = (char)toupper((unsigned char)line[i]);
+                i = i + 1;
+            }
+            flightno[i] = '\0';
+            return;
+        }
+        printf("Invalid flight ID. Letters and digits only, 2 to %d characters (e.g. PK301).\n", FLIGHT_LEN - 1);
+    }
+}
+
+static void readSeat(char prompt[], int *row, int *column) {
+    char line[50];
+    char *end;
+    long number;
+
+    while (1) {
+        printf("%s", prompt);
+
+        if (readLine(line, sizeof(line)) == 1) {
+            number = strtol(line, &end, 10);
+
+            if (end != line && number >= 1 && number <= 99 && isalpha((unsigned char)*end)
+                    && isOnlySpaces(end + 1) == 1) {
+                *row = (int)number - 1;
+                *column = toupper((unsigned char)*end) - 'A';
+                return;
+            }
+        }
+        printf("Invalid seat. Type a row number then a letter, like 12A.\n");
+    }
+}
+
+/* Memory helpers */
+
+static int growPassengers(void) {
+    struct Passenger *bigger;
+    int newCapacity;
+
+    if (passengerCount < passengerCapacity) {
+        return 1;
+    }
+
+    if (passengers == NULL) {
+        newCapacity = INITIAL_CAPACITY;
+        bigger = malloc(newCapacity * sizeof(struct Passenger));
+    } else {
+        newCapacity = passengerCapacity * 2;
+        bigger = realloc(passengers, newCapacity * sizeof(struct Passenger));
+    }
+
+    if (bigger == NULL) {
+        printf("Out of memory. Could not store more passengers.\n");
+        return 0;
+    }
+
+    passengers = bigger;
+    passengerCapacity = newCapacity;
+    return 1;
+}
+
+static int growBookings(void) {
+    struct Booking *bigger;
+    int newCapacity;
+
+    if (bookingCount < bookingCapacity) {
+        return 1;
+    }
+
+    if (bookings == NULL) {
+        newCapacity = INITIAL_CAPACITY;
+        bigger = malloc(newCapacity * sizeof(struct Booking));
+    } else {
+        newCapacity = bookingCapacity * 2;
+        bigger = realloc(bookings, newCapacity * sizeof(struct Booking));
+    }
+
+    if (bigger == NULL) {
+        printf("Out of memory. Could not store more bookings.\n");
+        return 0;
+    }
+
+    bookings = bigger;
+    bookingCapacity = newCapacity;
+    return 1;
+}
+
+static int seatIsBooked(char flightno[], int row, int column) {
     int x = 0;
 
-    while (x < count) {
-        if (id[x] == searchID) {
+    while (x < bookingCount) {
+        if (bookings[x].active == 1 && bookings[x].row == row && bookings[x].column == column
+                && strcmp(bookings[x].flightno, flightno) == 0) {
+            return 1;
+        }
+        x = x + 1;
+    }
+
+    return 0;
+}
+
+// Releases all records; call once before exit
+void freeRecords(void) {
+    free(passengers);
+    free(bookings);
+
+    passengers = NULL;
+    bookings = NULL;
+    passengerCount = 0;
+    passengerCapacity = 0;
+    bookingCount = 0;
+    bookingCapacity = 0;
+}
+
+/* Passenger functions */
+
+void registerPassenger(void) {
+    struct Passenger p;
+
+    p.id = readInt("Enter Passenger ID (1 to 999999): ", 1, 999999);
+
+    while (searchPassenger(p.id) != -1) {
+        printf("That ID is already registered.\n");
+        p.id = readInt("Enter a different ID (1 to 999999): ", 1, 999999);
+    }
+
+    readName("Enter Passenger Name: ", p.name);
+    p.age = readInt("Enter Passenger Age (1 to 120): ", 1, 120);
+    readContact("Enter Passenger Contact (digits only): ", p.contact);
+
+    if (growPassengers() == 0) {
+        return;
+    }
+
+    passengers[passengerCount] = p;
+    passengerCount = passengerCount + 1;
+
+    printf("\nPassenger registered.\n");
+}
+
+void displayPassenger(int index) {
+    printf("ID:      %d\n", passengers[index].id);
+    printf("Name:    %s\n", passengers[index].name);
+    printf("Age:     %d\n", passengers[index].age);
+    printf("Contact: %s\n", passengers[index].contact);
+}
+
+void displayAllPassengers(void) {
+    int i;
+
+    if (passengerCount == 0) {
+        printf("No passengers registered yet.\n");
+        return;
+    }
+
+    for (i = 0; i < passengerCount; i++) {
+        printf("\n--- Passenger %d ---\n", i + 1);
+        displayPassenger(i);
+    }
+}
+
+// Returns the index of the passenger with this ID, or -1
+int searchPassenger(int searchID) {
+    int x = 0;
+
+    while (x < passengerCount) {
+        if (passengers[x].id == searchID) {
             return x;
         }
         x = x + 1;
@@ -189,71 +460,79 @@ int searchPassenger(int id[], int count, int searchID) {
     return -1;
 }
 
-/* ---------- BOOKING FUNCTIONS ---------- */
+void searchPassengerMenu(void) {
+    int searchID;
+    int position;
 
-// Returns the new PNR, or 0 if the booking failed (and nothing was changed).
-int createBooking(struct Booking bookings[], int *bookingCount, int *nextPNR, int id[], int passengerCount) {
+    searchID = readInt("Enter the Passenger ID to search: ", 1, 999999);
+    position = searchPassenger(searchID);
+
+    if (position != -1) {
+        printf("\n--- Passenger Found ---\n");
+        displayPassenger(position);
+    } else {
+        printf("Passenger not found.\n");
+    }
+}
+
+/* Booking functions */
+
+// Returns the new PNR, or 0 if the booking failed
+int createBooking(void) {
     int   passengerID;
     char  flightno[FLIGHT_LEN];
-    int   seatRow;
-    char  seatLetter;
     int   row;
     int   column;
     int   travelClass;
     float fare;
     int   slot;
 
-    if (*bookingCount >= MAX_BOOKINGS) {
-        printf("Booking limit reached.\n");
+    passengerID = readInt("Enter Passenger ID: ", 1, 999999);
+
+    if (searchPassenger(passengerID) == -1) {
+        printf("Passenger not found. Booking not created.\n");
         return 0;
     }
 
-    printf("Enter Passenger ID: ");
-    scanf("%d", &passengerID);
+    readFlightNo("Enter Flight ID (e.g. PK301): ", flightno);
 
-    if (searchPassenger(id, passengerCount, passengerID) == -1) {
-        printf("Passenger not found. Booking cancelled.\n");
-        return 0;
-    }
-
-    printf("Enter Flight ID (e.g. PK301): ");
-    scanf("%9s", flightno);
-
+    // [ALI] flight lookup
     if (flightExists(flightno) == 0) {
-        printf("Flight not found. Booking cancelled.\n");
+        printf("Flight not found. Booking not created.\n");
         return 0;
     }
 
-    printf("Enter Seat (e.g. 12A): ");
-    scanf("%d %c", &seatRow, &seatLetter);
+    readSeat("Enter Seat (e.g. 12A): ", &row, &column);
 
-    row = seatRow - 1;
-    column = toupper(seatLetter) - 'A';
-
-    if (isSeatAvailable(flightno, row, column) == 0) {
-        printf("Seat is not available. Booking cancelled.\n");
+    // [ALI] seat availability
+    if (seatIsBooked(flightno, row, column) == 1 || isSeatAvailable(flightno, row, column) == 0) {
+        printf("Seat is not available. Booking not created.\n");
         return 0;
     }
 
-    printf("Enter Class (1 = Economy, 2 = Business): ");
-    scanf("%d", &travelClass);
+    travelClass = readInt("Enter Class (1 = Economy, 2 = Business): ", 1, 2);
 
-    if (travelClass != 1 && travelClass != 2) {
-        printf("Invalid class. Booking cancelled.\n");
+    // [ALI] seat-class rule
+    if (seatMatchesClass(flightno, row, column, travelClass) == 0) {
+        printf("That seat is not in the chosen class. Booking not created.\n");
         return 0;
     }
 
-    printf("Enter Fare: ");
-    scanf("%f", &fare);
+    // [ZAIN] fare calculation
+    fare = readFloat("Enter Fare: ", 1, 1000000);
 
-    // Every check has passed. Only now do we change anything.
+    if (growBookings() == 0) {
+        return 0;
+    }
+
+    // [ALI] seat reservation
     if (reserveSeat(flightno, row, column) == 0) {
-        printf("Could not reserve the seat. Booking cancelled.\n");
+        printf("Could not reserve the seat. Booking not created.\n");
         return 0;
     }
 
-    slot = *bookingCount;
-    bookings[slot].pnr = *nextPNR;
+    slot = bookingCount;
+    bookings[slot].pnr = nextPNR;
     bookings[slot].passengerID = passengerID;
     strcpy(bookings[slot].flightno, flightno);
     bookings[slot].row = row;
@@ -263,13 +542,15 @@ int createBooking(struct Booking bookings[], int *bookingCount, int *nextPNR, in
     bookings[slot].active = 1;
     bookings[slot].checkedIn = 0;
 
-    *bookingCount = *bookingCount + 1;
-    *nextPNR = *nextPNR + 1;
+    bookingCount = bookingCount + 1;
+    nextPNR = nextPNR + 1;
 
+    printf("\nBooking successful! Your PNR is %d\n", bookings[slot].pnr);
     return bookings[slot].pnr;
 }
 
-int findBookingByPNR(struct Booking bookings[], int bookingCount, int pnr) {
+// Returns the index of the booking with this PNR, or -1
+int findBookingByPNR(int pnr) {
     int x = 0;
 
     while (x < bookingCount) {
@@ -282,9 +563,18 @@ int findBookingByPNR(struct Booking bookings[], int bookingCount, int pnr) {
     return -1;
 }
 
-void displayBooking(struct Booking bookings[], int index) {
+void displayBooking(int index) {
+    int who;
+
     printf("PNR:        %d\n", bookings[index].pnr);
-    printf("Passenger:  %d\n", bookings[index].passengerID);
+
+    who = searchPassenger(bookings[index].passengerID);
+    if (who != -1) {
+        printf("Passenger:  %d (%s)\n", bookings[index].passengerID, passengers[who].name);
+    } else {
+        printf("Passenger:  %d\n", bookings[index].passengerID);
+    }
+
     printf("Flight:     %s\n", bookings[index].flightno);
     printf("Seat:       %d%c\n", bookings[index].row + 1, 'A' + bookings[index].column);
 
@@ -309,15 +599,28 @@ void displayBooking(struct Booking bookings[], int index) {
     }
 }
 
-// Returns 1 if a booking was cancelled, 0 otherwise (and nothing was changed).
-int cancelBooking(struct Booking bookings[], int bookingCount) {
+void searchBookingMenu(void) {
     int pnr;
     int position;
 
-    printf("Enter PNR to cancel: ");
-    scanf("%d", &pnr);
+    pnr = readInt("Enter PNR: ", 1, 9999999);
+    position = findBookingByPNR(pnr);
 
-    position = findBookingByPNR(bookings, bookingCount, pnr);
+    if (position != -1) {
+        printf("\n--- Booking Found ---\n");
+        displayBooking(position);
+    } else {
+        printf("Booking not found.\n");
+    }
+}
+
+// Returns 1 if the booking was cancelled, 0 otherwise
+int cancelBooking(void) {
+    int pnr;
+    int position;
+
+    pnr = readInt("Enter PNR to cancel: ", 1, 9999999);
+    position = findBookingByPNR(pnr);
 
     if (position == -1) {
         printf("Booking not found.\n");
@@ -329,40 +632,41 @@ int cancelBooking(struct Booking bookings[], int bookingCount) {
         return 0;
     }
 
-    // The seat is released only here. Once active is 0, we never get this far again.
+    // [ALI] seat release
     releaseSeat(bookings[position].flightno, bookings[position].row, bookings[position].column);
     bookings[position].active = 0;
 
+    printf("\nBooking cancelled. The seat is free again.\n");
     return 1;
 }
 
-/* ---------- TEMPORARY STAND-INS FOR ALI'S FUNCTIONS ----------
-   Whole section to be deleted when Ali's real flight/seat code is merged. */
+/* Accessors (read access for other modules, return NULL if not found) */
 
-int stubSeats[30][6];   // 0 = free, 1 = taken (one test flight, 30 rows x 6 seats)
+struct Booking *getBooking(int pnr) {
+    int position = findBookingByPNR(pnr);
 
-int flightExists(char flightno[]) {
-    if (strcmp(flightno, "PK301") == 0) {
-        return 1;
+    if (position == -1) {
+        return NULL;
     }
-    return 0;
+    return &bookings[position];
 }
 
-int isSeatAvailable(char flightno[], int row, int column) {
-    if (row < 0 || row >= 30 || column < 0 || column >= 6) {
-        return 0;
+struct Passenger *getPassenger(int id) {
+    int position = searchPassenger(id);
+
+    if (position == -1) {
+        return NULL;
     }
-    if (stubSeats[row][column] == 1) {
-        return 0;
-    }
-    return 1;
+    return &passengers[position];
 }
 
-int reserveSeat(char flightno[], int row, int column) {
-    stubSeats[row][column] = 1;
-    return 1;
+int getBookingCount(void) {
+    return bookingCount;
 }
 
-void releaseSeat(char flightno[], int row, int column) {
-    stubSeats[row][column] = 0;
+struct Booking *getBookingAt(int index) {
+    if (index < 0 || index >= bookingCount) {
+        return NULL;
+    }
+    return &bookings[index];
 }
