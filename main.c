@@ -1,4 +1,3 @@
-// #baggage operation and data report
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,7 +5,6 @@
 #define MAX_BAGGAGE MAX_RECORDS
 #define MAX_FLIGHTS 100
 #define Null 0
-// baggage structure
 struct Baggage
 {
     char pnr[10];
@@ -16,9 +14,7 @@ struct Baggage
     float charges;
 };
 struct Baggage baggage[MAX_BAGGAGE];
-
 int baggagecount = 0;
-
 float calculatebaggagecharge(float weight){
     if (weight <= 20){
         return 0;
@@ -52,7 +48,6 @@ void addBaggage() {
     saveData();
     printf("Baggage charges: Rs. %.2f\n", baggage[i].charges);
 }
-// searching for the baggage fount == 0 or found ==1
 void searchBaggage()
 {
     char searchPNR[20];
@@ -71,7 +66,6 @@ void searchBaggage()
             break;
         }
     }
-    
     if (found == 0) {
         printf("\nBaggage record not found.\n");
     }
@@ -94,7 +88,6 @@ void displayBaggage() {
 float calculate_Occupancy(int totalSeats, int occupiedSeats) {
     return ((float)occupiedSeats / totalSeats) * 100;
 }
-
 static float flightRevenue(int f) {
     float total = 0;
     for (int i = 0; i < getBookingCount(); i++) {
@@ -104,7 +97,6 @@ static float flightRevenue(int f) {
     }
     return total;
 }
-
 static int occupied(int f) {
     int count = 0;
     for (int i = 0; i < getBookingCount(); i++) {
@@ -114,13 +106,11 @@ static int occupied(int f) {
     }
     return count;
 }
-
 void occupancyReport() {
     if (FLIGHTS == 0) {
         printf("\nNo flight records available.\n");
         return;
     }
-    
     printf("\n--- OCCUPANCY REPORT ---\n");
     for (int i = 0; i < FLIGHTS; i++) {
         int availableSeats = (flights[i].rows * 6) - occupied(i);
@@ -137,7 +127,6 @@ void revenueReport() {
         printf("\nNo flight records available.\n");
         return;
     }
-    
     printf("\n--- REVENUE REPORT ---\n");
     for (int i = 0; i < FLIGHTS; i++) {
         float revenue = flightRevenue(i);
@@ -209,14 +198,12 @@ void reportMenu() {
         }
     } while (choice != 5);
 }
-
 float ticketFare(char flightno[], int travelClass, int age) {
     float fare = flights[flightIndex(flightno)].base;
     if (travelClass == 2) fare *= 1.8f;
     if (age < 12) fare *= 0.75f;
     return fare * 1.05f;
 }
-
 void checkIn(void) {
     int pnr = readInt("Enter PNR: ", 1001, 9999999);
     struct Booking *b = getBooking(pnr);
@@ -229,13 +216,11 @@ void checkIn(void) {
     puts("BOARDING PASS");
     displayBooking(findBookingByPNR(pnr));
 }
-
 void writeBaggage(FILE *file) {
     fprintf(file, "Baggage %d\n", baggagecount);
     for (int i = 0; i < baggagecount; i++)
         fprintf(file, "%s %d %.9g\n", baggage[i].pnr, baggage[i].bags, baggage[i].weight);
 }
-
 int loadBaggage(FILE *file) {
     int count;
     if (fscanf(file, " Baggage %8d", &count) != 1 || count < 0 || count > getBookingCount()) return 0;
